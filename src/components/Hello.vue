@@ -23,7 +23,7 @@
       left
       fab
       @click="openSheetNew"
-      style="bottom: 60px; left:90%;"
+      style="bottom: 60px; left:94%;"
     >
       <v-icon>add</v-icon>
     </v-btn>
@@ -484,8 +484,15 @@
       <v-card width="900" :style="{height:'92vh'}">
         <v-card-title :style="{display:'flex', 'align-items':'flex-start', 'justify-content':'center'}" primary-title>
           <v-text-field v-model="searchValueTeknisi" prepend-icon="search" :style="{width:'100%'}" label="Komputer Dikerjakan" color="black"></v-text-field>
+          <v-select
+            color="black"
+            :items="categoryFilter"
+            v-model="selectedCategoryFilter"
+            label="Filter Search"
+            outline
+          ></v-select>
         </v-card-title>
-        <v-card-text :style="{height:'80%',overflow:'auto',display:'flex', 'align-items':'flex-start', 'justify-content':'center', 'flex-wrap':'wrap'}">
+        <v-card-text :style="{height:'70%',overflow:'auto',display:'flex', 'align-items':'flex-start', 'justify-content':'center', 'flex-wrap':'wrap'}">
             <v-card v-for="(computer,index) in filteredTeknisi" dark :style="{margin:'10px',width:'340px',display:'flex', 'align-items':'flex-start', 'justify-content':'center', 'flex-wrap':'wrap'}">
               <v-card-title>{{computer.idKomputer}}</v-card-title>
               <v-card-text v-if="computer.tanggalDikerjakan != 'cancel'" :style="{display:'flex', 'align-items':'flex-start', 'justify-content':'center', 'flex-wrap':'wrap'}">
@@ -534,6 +541,8 @@
   export default {
     name: 'Hello',
     data: () => ({
+      selectedCategoryFilter:'',
+      categoryFilter:['All','Masuk','Validasi','Dikerjakan','Dibatalkan','Selesai'],
       catatanTeknisi:'',
       selectedBiayaTambahan:[],
       biayaTambahan:[],
@@ -623,7 +632,7 @@
             idTambahan : v
           })
           .then(result =>{
-            console.log(result)
+            
           })
         })
         axios.post(`http://${config.ip}:2000/setTanggalSelesai`,{
@@ -640,6 +649,16 @@
           console.log(this.detailKomputer)
           this.dialogPC = true
           this.getSemuaKomputer()
+        })
+        .then(()=>{
+          axios.post(`http://${config.ip}:2000/sms`,{
+            number: this.detailKomputer[0].noHPMasuk,
+            msg: `System Computer Service Centre : ${this.detailKomputer[0].namaMasuk} Komputer anda telah selesai, Silahkan cek biaya service di website kami dan silahkan bayar kemudian ambil komputer anda di toko kami, Termiakasih telah menggunakan layanan kami`
+          })
+          .then(result =>{
+            console.log('hasil')
+            console.log(result)
+          })
         })
       },
       mulaiMengerjakan(){
@@ -667,6 +686,14 @@
           console.log(this.detailKomputer)
           this.dialogPC = true
           this.getSemuaKomputer()
+          axios.post(`http://${config.ip}:2000/sms`,{
+            number: this.detailKomputer[0].noHPMasuk,
+            msg: `System Computer Service Centre : ${this.detailKomputer[0].namaMasuk} Komputer anda dalam proses validasi, Silahkan cek dan lakukan validasi komputer anda di website kami`
+          })
+          .then(result =>{
+            console.log('hasil')
+            console.log(result)
+          })
         })
       },
       validasiIssueSolusi(){
@@ -912,11 +939,53 @@
     },
     watch:{
       searchValueAll:function(newValue){
-        this.filteredAll = this.computersAll.filter(value => value.idKomputer.match(newValue))
+        this.filteredAll = this.computersAll.filter(v => v.idKomputer.match(newValue))
       },
       searchValueTeknisi:function(newValue){
-        this.filteredTeknisi = this.computersTeknisi.filter(value => value.idKomputer.match(newValue))
-        console.log(this.filteredTeknisi)
+        console.log(this.selectedCategoryFilter)
+        switch(this.selectedCategoryFilter){
+          case 'All':{
+            this.filteredTeknisi = this.computersTeknisi.filter(v => (v.idKomputer.match(newValue)))
+            break;
+          }
+          case 'Masuk':{
+            this.filteredTeknisi = this.computersTeknisi.filter(v => (v.idKomputer.match(newValue) && v.tanggalValidasi == null))
+            break;
+          }
+          case 'Validasi':{
+            this.filteredTeknisi = this.computersTeknisi.filter(v =>  (v.idKomputer.match(newValue) && v.tanggalValidasi != null && v.tanggalDikerjakan == null && v.tanggalDikerjakan != 'cencel'))
+            break;
+          }
+          case 'Dikerjakan':{
+            this.filteredTeknisi = this.computersTeknisi.filter(v =>  (v.idKomputer.match(newValue) && v.tanggalDikerjakan != null && v.tanggalSelesai == null && v.tanggalDikerjakan != 'cencel'))
+            break;
+          }
+          case 'Selesai':{
+            this.filteredTeknisi = this.computersTeknisi.filter(v =>  (v.idKomputer.match(newValue) && v.tanggalSelesai != null && v.tanggalDikerjakan != 'cancel'))
+            break;
+          }
+          case 'Dibatalkan':{
+            this.filteredTeknisi = this.computersTeknisi.filter(v =>  (v.idKomputer.match(newValue) && v.tanggalDikerjakan == 'cancel'))
+            break;
+          }
+        }
+        
+      },
+      selectedCategoryFilter: function(newValue){
+        
+        if(newValue == 'All'){
+          this.filteredTeknisi = this.computersTeknisi
+        }else if(newValue == 'Masuk'){
+          this.filteredTeknisi = this.computersTeknisi.filter(v => (v.tanggalValidasi == null))
+        }else if(newValue == 'Validasi'){
+          this.filteredTeknisi = this.computersTeknisi.filter(v => (v.tanggalValidasi != null && v.tanggalDikerjakan == null && v.tanggalDikerjakan != 'cencel'))
+        }else if(newValue == 'Dikerjakan'){
+          this.filteredTeknisi = this.computersTeknisi.filter(v => (v.tanggalDikerjakan != null && v.tanggalSelesai == null && v.tanggalDikerjakan != 'cencel'))
+        }else if(newValue == 'Selesai'){
+          this.filteredTeknisi = this.computersTeknisi.filter(v => (v.tanggalSelesai != null && v.tanggalDikerjakan != 'cancel'))
+        }else if(newValue == 'Dibatalkan'){
+          this.filteredTeknisi = this.computersTeknisi.filter(v => (v.tanggalDikerjakan == 'cancel'))
+        }
       }
     }
   }
