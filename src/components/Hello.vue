@@ -177,7 +177,7 @@
           <v-text-field
             color="black"
             :counter="100"
-            label="Nama Tambahan"
+            label="Nama Biaya Tambahan"
             v-model="biayaTambahanBaru"
             :rules="issueBaruRules"
           ></v-text-field>
@@ -653,7 +653,7 @@
         .then(()=>{
           axios.post(`http://${config.ip}:2000/sms`,{
             number: this.detailKomputer[0].noHPMasuk,
-            msg: `System Computer Service Centre : ${this.detailKomputer[0].namaMasuk} Komputer anda telah selesai, Silahkan cek biaya service di website kami dan silahkan bayar kemudian ambil komputer anda di toko kami, Termiakasih telah menggunakan layanan kami`
+            msg: `System Computer Service Centre : ${this.detailKomputer[0].namaMasuk} Komputer anda telah selesai, Silahkan cek biaya service di website kami kemudian ambil komputer anda di toko kami, Terimakasih telah menggunakan layanan kami #TEAM_AI`
           })
           .then(result =>{
             console.log('hasil')
